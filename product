@@ -1,0 +1,39 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+
+
+def get_product_category_pairs(products_df, categories_df):
+    # Соединяем датафреймы по полю product_id
+    joined_df = products_df.join(categories_df, products_df.product_id == categories_df.product_id, "left")
+
+    # Получаем пары «Имя продукта – Имя категории»
+    product_category_pairs = joined_df.select(products_df.product_name, categories_df.category_name)
+
+    # Получаем имена продуктов, у которых нет категорий
+    products_without_categories = products_df.join(categories_df, products_df.product_id == categories_df.product_id, "left_anti") \
+        .select(products_df.product_name)
+
+    return product_category_pairs, products_without_categories
+    
+
+# Пример использования
+
+# Создаем SparkSession
+spark = SparkSession.builder.getOrCreate()
+
+# Создаем датафреймы для продуктов и категорий
+products_data = [("product1", 1), ("product2", 2), ("product3", 3)]
+products_df = spark.createDataFrame(products_data, ["product_name", "product_id"])
+
+categories_data = [(1, "category1"), (2, "category2")]
+categories_df = spark.createDataFrame(categories_data, ["product_id", "category_name"])
+
+# Вызываем метод для получения пар «Имя продукта – Имя категории» и имен продуктов без категорий
+pairs, products_without_categories = get_product_category_pairs(products_df, categories_df)
+
+# Выводим результаты
+print("Пары \"Имя продукта – Имя категории\":")
+pairs.show()
+
+print("Имена продуктов без категорий:")
+products_without_categories.show()
